@@ -1,0 +1,13 @@
+{% extends "base.html" %} {% block body %}
+
+<div class="container h-100">
+  <div class="row d-flex justify-content-center align-items-center h-100">
+    <div class="col-lg-12 col-xl-11">
+      <div class="card text-black">
+        {% for todo in todos %} {{ todo.title }} {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
