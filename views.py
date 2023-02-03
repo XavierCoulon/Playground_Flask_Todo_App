@@ -1,4 +1,5 @@
 import requests
+import json
 from flask import Blueprint, render_template, request, redirect, flash, url_for, make_response
 views = Blueprint('views', __name__)
 
@@ -13,10 +14,84 @@ def todos():
 		headers = {"Authorization": "Bearer {}".format(jwt_token)}
 		response = requests.get("http://localhost:8000/todos", headers=headers)
 		if response.status_code == 200:
-			print(response.json())
 			todos = response.json()
+			return render_template("todos.html", todos=todos)
+	return render_template("index.html")
+
+@views.route('/todos/<int:id>', methods=["GET", "POST"])
+def update(id):
+	jwt_token = request.cookies.get("jwt_token")
+	if jwt_token:
+		headers = {"Authorization": "Bearer {}".format(jwt_token)}
+		response = requests.get(f"http://localhost:8000/todos/{id}", headers=headers)
+		if response.status_code == 200:
+			todo = response.json()
+			print(todo)
+			
+		
+		if request.method == "POST":
+			title = request.form.get("title")
+			description = request.form.get("description")
+			priority = request.form.get("priority")
+			complete = bool(request.form.get("complete"))
+			category_id = request.form.get("category_id")
+			payload = json.dumps({"title": title, "description": description, "priority": priority, "complete": complete, "category_id": category_id})
+			response = requests.put(f"http://localhost:8000/todos/{id}",headers=headers, data=payload)
+			if response.status_code == 200:
+				flash("Todo saved!", category="success")
+				return redirect(url_for("views.todos"))
+
+			else:
+				flash("Error...", category="error")
 	
-	return render_template("todos.html", todos=todos)
+	return render_template("update.html", todo=todo)
+
+@views.route('/todos/create', methods=["GET", "POST"])
+def create():
+	jwt_token = request.cookies.get("jwt_token")
+	if jwt_token:
+		headers = {"Authorization": "Bearer {}".format(jwt_token)}
+		if request.method == "POST":
+			title = request.form.get("title")
+			description = request.form.get("description")
+			priority = request.form.get("priority")
+			complete = bool(request.form.get("complete"))
+			category_id = request.form.get("category_id")
+			payload = json.dumps({"title": title, "description": description, "priority": priority, "complete": complete, "category_id": category_id})
+			response = requests.post(f"http://localhost:8000/todos/",headers=headers, data=payload)
+			if response.status_code == 200:
+				flash("Todo created!", category="success")
+				return redirect(url_for("views.todos"))
+
+			else:
+				flash("Error...", category="error")
+	
+	return render_template("create.html")
+
+
+@views.route('/todos/delete/<int:id>')
+def delete(id):
+	jwt_token = request.cookies.get("jwt_token")
+	if jwt_token:
+		headers = {"Authorization": "Bearer {}".format(jwt_token)}
+		response = requests.delete(f"http://localhost:8000/todos/{id}", headers=headers)
+		if response.status_code == 200:
+			flash("Todo deleted!", category="success")
+			return redirect(url_for("views.todos"))
+	return "Error"
+
+
+@views.route("/logout")
+def logout():
+	jwt_token = request.cookies.get("jwt_token")
+	if jwt_token:
+		flash("Logged out!", category="success")
+		response = make_response(render_template('index.html'))
+		response.delete_cookie('jwt_token')
+		return response
+	flash("You were not logged in...", category="error")
+	return render_template('index.html')
+
 
 
 @views.route('/login', methods=["GET", "POST"])
@@ -26,7 +101,6 @@ def login():
 		password = request.form.get('password')
 
 		response = requests.post("http://localhost:9000/users/token", data={"username": email, "password": password})
-		response_data = response.json()
 		
 		if response.status_code == 200:
 			flash("Logged in!", category="success")

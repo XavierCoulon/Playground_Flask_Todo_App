@@ -4,7 +4,15 @@
   <div class="row d-flex justify-content-center align-items-center h-100">
     <div class="col-lg-12 col-xl-11">
       <div class="card text-black">
-        {% for todo in todos %} {{ todo.title }} {% endfor %}
+        <a href="/todos/create">Create a todo</a>
+        <ul>
+          {% for todo in todos %}
+          <li>
+            <a href="/todos/{{todo.id}}">{{ todo.title }}</a
+            ><a href="/todos/delete/{{todo.id}}">🗑️</a>
+          </li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
   </div>
