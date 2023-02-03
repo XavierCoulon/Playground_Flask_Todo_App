@@ -26,7 +26,9 @@ def update(id):
 		response = requests.get(f"http://localhost:8000/todos/{id}", headers=headers)
 		if response.status_code == 200:
 			todo = response.json()
-			print(todo)
+		response_categories = requests.get(f"http://localhost:8000/categories", headers=headers)
+		if response_categories.status_code == 200:
+			categories = response_categories.json()
 			
 		
 		if request.method == "POST":
@@ -44,20 +46,37 @@ def update(id):
 			else:
 				flash("Error...", category="error")
 	
-	return render_template("update.html", todo=todo)
+	return render_template("update.html", todo=todo, categories=categories)
 
 @views.route('/todos/create', methods=["GET", "POST"])
 def create():
 	jwt_token = request.cookies.get("jwt_token")
 	if jwt_token:
 		headers = {"Authorization": "Bearer {}".format(jwt_token)}
+
+		response = requests.get(f"http://localhost:8000/categories", headers=headers)
+		if response.status_code == 200:
+			categories = response.json()
+			print(categories, len(categories))
+			
+
 		if request.method == "POST":
 			title = request.form.get("title")
 			description = request.form.get("description")
 			priority = request.form.get("priority")
 			complete = bool(request.form.get("complete"))
 			category_id = request.form.get("category_id")
+			new_category = request.form.get("new_category")
+		
+			if new_category:
+				payload = json.dumps({"name": new_category})
+				response = requests.post("http://localhost:8000/categories", headers=headers, data=payload)
+				category = response.json()
+				print(type(category), category.__dict__)
+				# category_id = category.get("id")
+				
 			payload = json.dumps({"title": title, "description": description, "priority": priority, "complete": complete, "category_id": category_id})
+			print(payload)
 			response = requests.post(f"http://localhost:8000/todos/",headers=headers, data=payload)
 			if response.status_code == 200:
 				flash("Todo created!", category="success")
@@ -66,7 +85,7 @@ def create():
 			else:
 				flash("Error...", category="error")
 	
-	return render_template("create.html")
+	return render_template("create.html", categories=categories)
 
 
 @views.route('/todos/delete/<int:id>')
@@ -117,10 +136,17 @@ def signup():
 	if request.method == 'POST':
 		email = request.form.get('email')
 		password1 = request.form.get('password1')
+		password2 = request.form.get('password2')
 
-		response = requests.post("http://localhost:9000/users/", data={"email": email, "password": password1})
+
+		if password1 != password2:
+			flash("Passwords do not match...", category="error")
+			return render_template("signup.html", error="Passwords do not match...")
+
+		payload = json.dumps({"email": email, "password": password1})
+
+		response = requests.post("http://localhost:9000/users/", data=payload)
 		response_data = response.json()
-		print(response_data)
 		flash("Account created!", category="success")
 		return redirect(url_for("views.home"))
 		
